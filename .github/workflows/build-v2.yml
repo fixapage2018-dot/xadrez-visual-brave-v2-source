@@ -4,7 +4,8 @@ name: Compilar APK Xadrez V2
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -12,26 +13,33 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Baixar arquivos do repositorio
+        uses: actions/checkout@v4
 
       - name: Extrair projeto
         run: |
           unzip -q xadrez-visual-brave-v2-teste-fonte.zip -d /tmp/xadrez
           cp -a /tmp/xadrez/xadrez-visual-android-main/. .
 
-      - uses: actions/setup-java@v4
+      - name: Configurar Java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      - name: Configurar Android
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '12266719'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
 
-      - name: Preparar mecanismo
+      - name: Preparar mecanismo de xadrez
         run: python3 scripts/prepare_engine.py
 
       - name: Testar regras
@@ -43,10 +51,9 @@ jobs:
       - name: Compilar APK
         run: gradle :app:assembleDebug --console=plain
 
-      - name: Salvar APK
+      - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
           name: XadrezVisual-Android-teste
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-          
