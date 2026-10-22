@@ -4,7 +4,8 @@ name: Compilar APK Xadrez V2
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -17,14 +18,19 @@ jobs:
       - name: Baixar arquivos do repositório
         uses: actions/checkout@v4
 
-      - name: Extrair projeto
+      - name: Extrair projeto corrigido
         shell: bash
         run: |
           set -e
           mkdir -p /tmp/xadrez
-          unzip -q xadrez-visual-brave-v2-teste-fonte.zip -d /tmp/xadrez
-          cp -a /tmp/xadrez/xadrez-visual-android-main/. .
-          test -f settings.gradle
+          unzip -q xadrez-visual-v2-correcao-area.zip -d /tmp/xadrez
+
+          ROOT="$(find /tmp/xadrez -name settings.gradle -o -name settings.gradle.kts | head -n 1)"
+          test -n "$ROOT"
+
+          PROJECT_DIR="$(dirname "$ROOT")"
+          cp -a "$PROJECT_DIR"/. .
+          test -f settings.gradle -o -f settings.gradle.kts
 
       - name: Configurar Java
         uses: actions/setup-java@v5
@@ -33,17 +39,9 @@ jobs:
           java-version: '17'
 
       - name: Configurar Android SDK
-        shell: bash
-        run: |
-          set -e
-          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
-          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)"
-          test -n "$SDKMANAGER"
-          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses || true
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools, platforms;android-35, build-tools;35.0.0'
 
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -54,7 +52,9 @@ jobs:
         run: python3 scripts/prepare_engine.py
 
       - name: Testar regras
+        shell: bash
         run: |
+          set -e
           mkdir -p /tmp/chess-tests
           javac -d /tmp/chess-tests \
             app/src/main/java/br/com/xadrezvisual/Board.java \
@@ -71,3 +71,4 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
+          
