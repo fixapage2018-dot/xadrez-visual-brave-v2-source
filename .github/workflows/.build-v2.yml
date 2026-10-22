@@ -4,7 +4,8 @@ name: Compilar APK Xadrez V2
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -30,6 +31,8 @@ jobs:
 
       - name: Configurar Android
         uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '12266719'
 
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -54,4 +57,4 @@ jobs:
           name: XadrezVisual-Android-teste
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-          
+
