@@ -25,7 +25,7 @@ jobs:
           mkdir -p /tmp/xadrez
           unzip -q xadrez-visual-v2-correcao-area.zip -d /tmp/xadrez
 
-          ROOT="$(find /tmp/xadrez -name settings.gradle -o -name settings.gradle.kts | head -n 1)"
+          ROOT="$(find /tmp/xadrez \( -name settings.gradle -o -name settings.gradle.kts \) -type f | head -n 1)"
           test -n "$ROOT"
 
           PROJECT_DIR="$(dirname "$ROOT")"
@@ -41,7 +41,10 @@ jobs:
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools, platforms;android-35, build-tools;35.0.0'
+          packages: |
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
 
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
