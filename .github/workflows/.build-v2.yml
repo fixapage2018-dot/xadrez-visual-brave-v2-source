@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Baixar código
+      - name: Baixar arquivos do GitHub
         uses: actions/checkout@v4
 
       - name: Configurar Java
@@ -23,10 +23,37 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Extrair projeto ZIP
+      - name: Encontrar e extrair ZIP
         run: |
-          unzip -o xadrez-celular.zip -d projeto
-          find projeto -name settings.gradle.kts -print
+          ZIP=$(find . -type f -iname "*.zip" \
+            -not -path "./.git/*" | head -n 1)
+
+          if [ -z "$ZIP" ]; then
+            echo "ERRO: Nenhum ZIP encontrado no repositório."
+            echo "Arquivos encontrados:"
+            find . -maxdepth 4 -type f
+            exit 1
+          fi
+
+          echo "ZIP encontrado: $ZIP"
+          mkdir -p projeto
+          unzip -o "$ZIP" -d projeto
+
+      - name: Localizar projeto Android
+        run: |
+          SETTINGS=$(find projeto -type f \
+            -name settings.gradle.kts -print -quit)
+
+          if [ -z "$SETTINGS" ]; then
+            echo "ERRO: settings.gradle.kts não encontrado."
+            echo "Conteúdo extraído:"
+            find projeto -maxdepth 5 -type f
+            exit 1
+          fi
+
+          echo "Projeto encontrado em: $(dirname "$SETTINGS")"
+          echo "PROJECT_DIR=$(dirname "$SETTINGS")" \
+            >> "$GITHUB_ENV"
 
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -35,18 +62,21 @@ jobs:
 
       - name: Compilar APK
         run: |
-          DIR=$(find projeto -name settings.gradle.kts -printf '%h\n' | head -n 1)
-          if [ -z "$DIR" ]; then
-            echo "ERRO: settings.gradle.kts não encontrado dentro do ZIP"
+          cd "$PROJECT_DIR"
+          gradle assembleDebug
+          APK=$(find app/build/outputs/apk/debug \
+            -name "*.apk" -type f -print -quit)
+
+          if [ -z "$APK" ]; then
+            echo "ERRO: APK não foi gerado."
             exit 1
           fi
-          cd "$DIR"
-          gradle assembleDebug
+
+          cp "$APK" "$GITHUB_WORKSPACE/xadrez-celular.apk"
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: xadrez-celular-debug-apk
-          path: projeto/**/app/build/outputs/apk/debug/app-debug.apk
+          name: xadrez-celular-apk
+          path: xadrez-celular.apk
           if-no-files-found: error
-          
