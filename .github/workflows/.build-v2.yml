@@ -1,4 +1,3 @@
-
 name: Build Android APK
 
 on:
@@ -55,6 +54,16 @@ jobs:
           echo "PROJECT_DIR=$(dirname "$SETTINGS")" \
             >> "$GITHUB_ENV"
 
+      - name: Baixar Stockfish (Android arm64) e colocar no app
+        run: |
+          curl -fL -o sf.tar \
+            https://github.com/official-stockfish/Stockfish/releases/download/sf_17.1/stockfish-android-armv8.tar
+          tar -xf sf.tar stockfish/stockfish-android-armv8
+          DEST="$PROJECT_DIR/app/src/main/jniLibs/arm64-v8a"
+          mkdir -p "$DEST"
+          cp stockfish/stockfish-android-armv8 "$DEST/libstockfish.so"
+          ls -la "$DEST"
+
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -72,11 +81,11 @@ jobs:
             exit 1
           fi
 
-          cp "$APK" "$GITHUB_WORKSPACE/xadrez-celular.apk"
+          cp "$APK" "$GITHUB_WORKSPACE/XadrezDica.apk"
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: xadrez-celular-apk
-          path: xadrez-celular.apk
+          name: XadrezDica-apk
+          path: XadrezDica.apk
           if-no-files-found: error
